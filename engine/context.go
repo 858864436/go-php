@@ -9,6 +9,10 @@ package engine
 //
 // #include <stdlib.h>
 // #include <main/php.h>
+// #include <main/SAPI.h>
+// #include <main/php_globals.h>
+// #include <Zend/zend_globals.h>
+// #include <Zend/zend_globals_macros.h>
 // #include "context.h"
 import "C"
 
@@ -24,14 +28,50 @@ type Context struct {
 	// Output and Log are unbuffered writers used for regular and debug output,
 	// respectively. If left unset, any data written into either by the calling
 	// context will be lost.
-	Output io.Writer
-	Log    io.Writer
+	Output  io.Writer
+	Log     io.Writer
 
 	// Header represents the HTTP headers set by current PHP context.
-	Header http.Header
+	Header  http.Header
 
 	context *C.struct__engine_context
 	values  []*Value
+}
+
+func ServerContextGet() C.struct__sapi_globals_struct {
+	return C.server_context_get()
+}
+
+func ServerContextClear() {
+	C.server_context_clear()
+}
+
+func ServerContextSet(ctx C.struct__sapi_globals_struct) {
+	C.server_context_set(ctx)
+}
+
+func ExecutorContextGet() C.struct__zend_executor_globals {
+	return C.executor_context_get()
+}
+
+func ExecutorContextClear() {
+	C.executor_context_clear()
+}
+
+func ExecutorContextSet(ctx C.struct__zend_executor_globals) {
+	C.executor_context_set(ctx)
+}
+
+func CoreContextGet() C.struct__php_core_globals {
+	return C.core_context_get()
+}
+
+func CoreContextClear() {
+	C.core_context_clear()
+}
+
+func CoreContextSet(ctx C.struct__php_core_globals) {
+	C.core_context_set(ctx)
 }
 
 // Bind allows for binding Go values into the current execution context under

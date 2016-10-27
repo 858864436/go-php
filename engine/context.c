@@ -6,6 +6,7 @@
 #include <stdbool.h>
 
 #include <main/php.h>
+#include <main/SAPI.h>
 #include <main/php_main.h>
 
 #include "value.h"
@@ -34,6 +35,36 @@ engine_context *context_new() {
 
 	errno = 0;
 	return context;
+}
+
+sapi_globals_struct server_context_get() {
+	return sapi_globals;
+}
+void server_context_clear() {
+	memset(&sapi_globals, 0, sizeof sapi_globals);
+}
+void server_context_set(sapi_globals_struct context) {
+	sapi_globals = context;
+}
+
+
+zend_executor_globals executor_context_get() {
+	return executor_globals;
+}
+void executor_context_clear() {
+	memset(&executor_globals, 0, sizeof executor_globals);
+}
+void executor_context_set(zend_executor_globals context) {
+	executor_globals = context;
+}
+php_core_globals core_context_get() {
+	return core_globals;
+}
+void core_context_clear() {
+	memset(&core_globals, 0, sizeof core_globals);
+}
+void core_context_set(php_core_globals context) {
+	core_globals = context;
 }
 
 void context_exec(engine_context *context, char *filename) {

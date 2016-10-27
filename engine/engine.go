@@ -10,6 +10,7 @@ package engine
 // #cgo CFLAGS: -I/usr/include/php/Zend -Iinclude
 //
 // #include <stdlib.h>
+// #include <main/SAPI.h>
 // #include <main/php.h>
 // #include "receiver.h"
 // #include "context.h"
@@ -76,6 +77,28 @@ func (e *Engine) NewContext() (*Context, error) {
 	return ctx, nil
 }
 
+func (e *Engine) DestroyContext(ctx *Context) {
+	e.contexts[ctx.context].Destroy()
+	delete(e.contexts, ctx.context)
+
+	r_fns := map[string]func(args []interface{}) interface{}{}
+	for _, r := range e.receivers {
+		r_fns[r.name] = r.create
+		r.Destroy()
+	}
+	for name, fn := range r_fns {
+		rcvr := &Receiver{
+			name:    name,
+			create:  fn,
+			objects: make(map[*C.struct__engine_receiver]*ReceiverObject),
+		}
+		e.receivers[name] = rcvr
+		n := C.CString(name)
+		defer C.free(unsafe.Pointer(n))
+		C.receiver_define(n)
+	}
+}
+
 // Define registers a PHP class for the name passed, using function fn as
 // constructor for individual object instances as needed by the PHP context.
 //
@@ -84,10 +107,10 @@ func (e *Engine) NewContext() (*Context, error) {
 // The constructor function accepts a slice of arguments, as passed by the PHP
 // context, and should return a method receiver instance, or nil on error (in
 // which case, an exception is thrown on the PHP object constructor).
-func (e *Engine) Define(name string, fn func(args []interface{}) interface{}) error {
-	if _, exists := e.receivers[name]; exists {
-		return fmt.Errorf("Failed to define duplicate receiver '%s'", name)
-	}
+func (e *Engine) Define(name string, fn func(args []interface{}) interface{}) (*Receiver, error) {
+	//if _, exists := e.receivers[name]; exists {
+	//	return fmt.Errorf("Failed to define duplicate receiver '%s'", name)
+	//}
 
 	rcvr := &Receiver{
 		name:    name,
@@ -101,7 +124,7 @@ func (e *Engine) Define(name string, fn func(args []interface{}) interface{}) er
 	C.receiver_define(n)
 	e.receivers[name] = rcvr
 
-	return nil
+	return rcvr, nil
 }
 
 // Destroy shuts down and frees any resources related to the PHP engine bindings.
